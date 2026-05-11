@@ -705,8 +705,8 @@ function renderSurvey(data) {
         `<div class="emotion-chip ${surveyAnswers[q.id]===e?'selected':''}" onclick="setSurveyAns('${q.id}','${e}')">${e}</div>`
       ).join('')}</div>`;
     } else if (q.type === 'opt-list') {
-      inputHTML = q.options.map(opt =>
-        `<button class="opt-btn ${surveyAnswers[q.id]===opt?'selected':''}" onclick="setSurveyAns('${q.id}',${JSON.stringify(opt)})">${opt}</button>`
+      inputHTML = q.options.map((opt, i) =>
+        `<button class="opt-btn ${surveyAnswers[q.id]===opt?'selected':''}" onclick="setSurveyOptList('${q.id}',${i})">${opt}</button>`
       ).join('');
     } else if (q.type === 'btn-group') {
       const colClass = `cols-${q.cols}`;
