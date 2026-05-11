@@ -323,6 +323,13 @@
     .mb-16 { margin-bottom: 16px; }
     .mb-24 { margin-bottom: 24px; }
 
+    @keyframes narrationFade {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .narration-fade {
+      animation: narrationFade 2.5s ease forwards;
+    }
     @keyframes fadeUp {
       from { opacity:0; transform:translateY(8px); }
       to   { opacity:1; transform:translateY(0);   }
@@ -815,8 +822,7 @@ function renderRoundInput(data) {
   document.getElementById('app').innerHTML = `
     ${pageHeader()}
     <div class="fade-up">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <span class="round-badge">Round ${round} of 5</span>
+      <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:16px">
         ${myChar ? `<span class="label" style="font-size:0.68rem;color:var(--muted)">${myChar.name} — ${myChar.role}</span>` : ''}
       </div>
 
@@ -923,38 +929,20 @@ function renderNarration(data, type) {
 
 function startTypewriter(text, startedAt) {
   if (!text) return;
-  const SPEED   = 20;
-  const elapsed = Date.now() - startedAt;
-  let i = Math.min(Math.floor(elapsed / SPEED), text.length);
-
   const el     = document.getElementById('narration-text');
   const cursor = document.getElementById('tw-cursor');
   const btn    = document.getElementById('narration-continue');
   if (!el) return;
 
-  el.textContent = text.substring(0, i);
+  el.textContent = text;
+  el.classList.add('narration-fade');
+  if (cursor) cursor.style.display = 'none';
 
-  if (i >= text.length) {
-    if (cursor) cursor.style.display = 'none';
-    if (btn)    btn.style.display    = 'block';
-    return;
-  }
-
-  twTimer = setInterval(() => {
-    i++;
-    const el2 = document.getElementById('narration-text');
-    if (!el2) { clearInterval(twTimer); return; }
-    el2.textContent = text.substring(0, i);
-    // Auto scroll
-    el2.scrollIntoView({ behavior:'smooth', block:'end' });
-    if (i >= text.length) {
-      clearInterval(twTimer);
-      const c = document.getElementById('tw-cursor');
-      const b = document.getElementById('narration-continue');
-      if (c) c.style.display = 'none';
-      if (b) b.style.display = 'block';
-    }
-  }, SPEED);
+  // Show continue button after fade completes
+  setTimeout(() => {
+    const b = document.getElementById('narration-continue');
+    if (b) b.style.display = 'block';
+  }, 2600);
 }
 
 async function advanceFromNarration() {
