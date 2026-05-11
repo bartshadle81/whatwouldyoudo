@@ -460,7 +460,8 @@ const EMOTIONS = [
   'Terrified','Panicked','Frozen','Horrified','Dread',
   'Anxious','Apprehensive','Nervous','Tense','Overwhelmed',
   'Shocked','Numb','Helpless','Stunned','Disoriented',
-  'Alert','Focused','Determined','Protective','Angry'
+  'Alert','Focused','Determined','Protective','Angry',
+  'Calm','Curious','Confident','Hopeful','Excited','Relaxed'
 ];
 
 const SURVEY_QS = [
@@ -730,7 +731,7 @@ function renderSurvey(data) {
   document.getElementById('app').innerHTML = `
     ${pageHeader()}
     <div class="fade-up">
-      <div class="body-text">A quick personality survey. Answer honestly — there are no right or wrong answers. <strong style="color:var(--text)">Only Claude will see your responses.</strong></div>
+      <div class="body-text">A quick personality survey. Answer honestly — there are no right or wrong answers. Your responses are confidential.</div>
       <div class="label mt-8" style="color:var(--accent)">Answering as ${charName}</div>
       ${qHTML}
       <div class="mt-20">
@@ -744,6 +745,11 @@ function renderSurvey(data) {
 function setSurveyAns(qId, val) {
   surveyAnswers[qId] = val;
   renderSurvey(gameState);
+}
+
+function setSurveyOptList(qId, idx) {
+  const q = SURVEY_QS.find(q => q.id === qId);
+  if (q) setSurveyAns(qId, q.options[idx]);
 }
 
 async function submitSurvey() {
