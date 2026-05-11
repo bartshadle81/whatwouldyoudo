@@ -141,6 +141,7 @@
     .btn-group.cols-2 { grid-template-columns: 1fr 1fr; }
     .btn-group.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
     .btn-group.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .btn-group.cols-1 .btn-opt { text-align: left; }
     .btn-opt {
       padding: 12px 10px;
       background: var(--surface2);
@@ -481,13 +482,13 @@ const SURVEY_QS = [
   },
   {
     id:'q3', text:'When someone in authority tells you what to do, you:',
-    type:'opt-list',
+    type:'btn-group', cols:1,
     options:[
-      'Follow immediately — it\'s usually the right call',
-      'Follow along, but quietly weigh your options',
-      'Go along with it for now, but trust your instincts',
-      'Follow orders only if they make sense to me',
-      'My instinct is to resist — being told what to do makes me push back'
+      {v:'Follow immediately',     label:'Follow immediately',              sub:'It\'s usually the right call'},
+      {v:'Follow but weigh',       label:'Follow along, weigh your options', sub:'Quietly look for a better path'},
+      {v:'Comply for now',         label:'Go along with it for now',         sub:'But trust your instincts'},
+      {v:'Only if it makes sense', label:'Only if it makes sense to me',     sub:'Orders need to earn compliance'},
+      {v:'Resist',                 label:'My instinct is to resist',         sub:'Being told what to do makes me push back'}
     ]
   },
   {
@@ -704,10 +705,7 @@ function renderSurvey(data) {
       inputHTML = `<div class="emotion-grid">${q.options.map(e =>
         `<div class="emotion-chip ${surveyAnswers[q.id]===e?'selected':''}" onclick="setSurveyAns('${q.id}','${e}')">${e}</div>`
       ).join('')}</div>`;
-    } else if (q.type === 'opt-list') {
-      inputHTML = q.options.map((opt, i) =>
-        `<div class="opt-btn ${surveyAnswers[q.id]===opt?'selected':''}" onclick="setSurveyOptList('${q.id}',${i})">${opt}</div>`
-      ).join('');
+
     } else if (q.type === 'btn-group') {
       const colClass = `cols-${q.cols}`;
       inputHTML = `<div class="btn-group ${colClass}">${q.options.map(opt =>
@@ -745,11 +743,6 @@ function renderSurvey(data) {
 function setSurveyAns(qId, val) {
   surveyAnswers[qId] = val;
   renderSurvey(gameState);
-}
-
-function setSurveyOptList(qId, idx) {
-  const q = SURVEY_QS.find(q => q.id === qId);
-  if (q) setSurveyAns(qId, q.options[idx]);
 }
 
 async function submitSurvey() {
