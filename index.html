@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What Would You Do?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #0b0b0b;
+      --surface: #161616;
+      --surface2: #1e1e1e;
+      --border: #2a2a2a;
+      --accent: #c41e3a;
+      --accent-dim: rgba(196,30,58,0.12);
+      --amber: #d97706;
+      --amber-dim: rgba(217,119,6,0.12);
+      --text: #ededed;
+      --muted: #888;
+      --faint: #3a3a3a;
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    #app {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 28px 20px 100px;
+    }
+
+    /* ── Header ── */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 36px;
+    }
+    .game-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      letter-spacing: 0.06em;
+      line-height: 1;
+    }
+    .scenario-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 4px 9px;
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+
+    /* ── Typography ── */
+    .label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      letter-spacing: 0.05em;
+      line-height: 1.1;
+    }
+    .body-text { font-size: 0.95rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-block;
+      padding: 11px 22px;
+      border: none;
+      border-radius: 3px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #a3192f; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--faint); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-full { width: 100%; text-align: center; display: block; }
+
+    /* ── Option buttons (survey list style) ── */
+    .opt-btn {
+      display: block;
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.12s;
+      margin-bottom: 7px;
+      line-height: 1.5;
+    }
+    .opt-btn:last-child { margin-bottom: 0; }
+    .opt-btn:hover { border-color: #444; }
+    .opt-btn.selected { background: var(--accent-dim); border-color: var(--accent); }
+
+    /* ── Inline buttons (fight/flight etc.) ── */
+    .btn-group {
+      display: grid;
+      gap: 8px;
+    }
+    .btn-group.cols-2 { grid-template-columns: 1fr 1fr; }
+    .btn-group.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .btn-group.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .btn-opt {
+      padding: 12px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .btn-opt:hover { border-color: #444; }
+    .btn-opt.selected { background: var(--accent-dim); border-color: var(--accent); }
+    .btn-opt .opt-label { font-size: 0.88rem; font-weight: 600; display: block; }
+    .btn-opt .opt-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; display: block; }
+    .btn-opt.selected .opt-sub { color: #c9697a; }
+
+    /* ── Emotion chips ── */
+    .emotion-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+    .emotion-chip {
+      padding: 7px 13px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.12s;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+    }
+    .emotion-chip:hover { border-color: #444; }
+    .emotion-chip.selected { background: var(--accent-dim); border-color: var(--accent); }
+
+    /* ── Character cards ── */
+    .char-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .char-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 18px;
+      position: relative;
+      transition: border-color 0.18s;
+      cursor: pointer;
+      border-top: 3px solid var(--border);
+    }
+    .char-card.loc-inside { border-top-color: var(--accent); }
+    .char-card.loc-outside { border-top-color: var(--amber); }
+    .char-card:not(.claimed):not(.taken):hover { border-color: #444; }
+    .char-card.claimed { background: var(--accent-dim); border-color: var(--accent); cursor: default; }
+    .char-card.taken { opacity: 0.45; cursor: default; }
+    .char-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem;
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+    .char-loc {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 5px;
+    }
+    .char-loc.inside { color: var(--accent); }
+    .char-loc.outside { color: var(--amber); }
+    .char-desc { font-size: 0.82rem; color: var(--muted); margin-top: 10px; line-height: 1.55; }
+    .char-badge {
+      position: absolute;
+      top: 10px; right: 12px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .badge-mine { color: var(--accent); }
+    .badge-taken { color: var(--faint); }
+
+    /* ── Waiting indicators ── */
+    .waiting-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .waiting-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+    }
+    .waiting-item.done { border-color: var(--success); }
+    .waiting-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--faint);
+    }
+    .waiting-item.done .waiting-dot { background: var(--success); }
+    .waiting-item.pending .waiting-dot {
+      background: transparent;
+      border: 1px solid #555;
+      animation: dotPulse 1.5s infinite;
+    }
+    @keyframes dotPulse { 0%,100% { opacity:1 } 50% { opacity:0.25 } }
+    .waiting-name { font-size: 0.85rem; font-weight: 600; }
+    .waiting-sub { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── Round badge ── */
+    .round-badge {
+      display: inline-block;
+      padding: 4px 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Narration ── */
+    .narration-text {
+      font-size: 1rem;
+      line-height: 1.85;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+    .tw-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--accent);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: cursorBlink 0.75s infinite;
+    }
+    @keyframes cursorBlink { 0%,100% { opacity:1 } 50% { opacity:0 } }
+
+    /* ── Action input ── */
+    .action-input {
+      width: 100%;
+      min-height: 110px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      padding: 13px;
+      resize: vertical;
+      transition: border-color 0.15s;
+      line-height: 1.6;
+    }
+    .action-input:focus { outline: none; border-color: var(--accent); }
+    .action-input::placeholder { color: #444; }
+
+    /* ── History snippet ── */
+    .narration-history {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 14px;
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 0.84rem;
+      color: var(--muted);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    /* ── Utilities ── */
+    .mt-8  { margin-top: 8px;  }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-20 { margin-top: 20px; }
+    .mt-24 { margin-top: 24px; }
+    .mt-32 { margin-top: 32px; }
+    .mb-8  { margin-bottom: 8px;  }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mb-24 { margin-bottom: 24px; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(8px); }
+      to   { opacity:1; transform:translateY(0);   }
+    }
+    .fade-up { animation: fadeUp 0.35s ease forwards; }
+
+    /* ── GM Panel ── */
+    #gm-panel {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #0f0f0f;
+      border-top: 2px solid var(--accent);
+      padding: 12px 20px;
+      z-index: 200;
+      display: none;
+    }
+    .gm-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .gm-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 3px 7px;
+      border: 1px solid var(--accent);
+      border-radius: 2px;
+    }
+    .gm-input {
+      flex: 1;
+      min-width: 180px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem;
+      padding: 7px 10px;
+    }
+    .gm-input:focus { outline: none; border-color: var(--accent); }
+    .gm-btn {
+      padding: 7px 14px;
+      border: none;
+      border-radius: 3px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+      white-space: nowrap;
+    }
+    .gm-btn-red  { background: var(--accent); color: #fff; }
+    .gm-btn-red:hover:not(:disabled)  { background: #a3192f; }
+    .gm-btn-gray { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .gm-btn-gray:hover:not(:disabled) { color: var(--text); }
+    .gm-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .gm-status { font-size: 0.75rem; color: var(--muted); }
+    .gm-actions-preview {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.6;
+      max-height: 120px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    @media (max-width: 520px) {
+      .char-grid    { grid-template-columns: 1fr; }
+      .waiting-grid { grid-template-columns: 1fr; }
+      .btn-group.cols-4 { grid-template-columns: 1fr 1fr; }
+      #app { padding: 20px 14px 120px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<div id="gm-panel">
+  <div class="gm-inner">
+    <span class="gm-tag">GM</span>
+    <input type="password" id="gm-api-key" class="gm-input" placeholder="Anthropic API key...">
+    <button class="gm-btn gm-btn-gray" onclick="gmSetKey()">Set Key</button>
+    <button id="gm-fire-btn"    class="gm-btn gm-btn-red"  onclick="gmFireOpening()" disabled style="display:none">Fire Opening</button>
+    <button id="gm-narrate-btn" class="gm-btn gm-btn-red"  onclick="gmNarrate()"     disabled style="display:none">Narrate Round</button>
+    <button class="gm-btn gm-btn-gray" onclick="gmReset()">Reset</button>
+    <span id="gm-status" class="gm-status"></span>
+  </div>
+  <div class="gm-inner" style="margin-top:6px">
+    <div id="gm-actions-preview" class="gm-actions-preview"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDIM9Hxc6zkSFETM_CvCRXkC-U5iMBZG74",
+  authDomain:        "shadle-escape-room.firebaseapp.com",
+  databaseURL:       "https://shadle-escape-room-default-rtdb.firebaseio.com",
+  projectId:         "shadle-escape-room",
+  storageBucket:     "shadle-escape-room.firebasestorage.app",
+  messagingSenderId: "152488119573",
+  appId:             "1:152488119573:web:5b09e70923396141b96d1c"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const db   = firebase.database();
+const ROOT = 'whatWouldYouDo';
+
+// ═══════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════
+const IS_GM = new URLSearchParams(window.location.search).has('gm');
+
+const CHARACTERS = {
+  bart:    { name:'Bart',    locKey:'inside',  role:'Papa',     desc:'The cool bearded teacher'   },
+  melissa: { name:'Melissa', locKey:'inside',  role:'Mama',     desc:'The dog loving socialite'   },
+  noah:    { name:'Noah',    locKey:'outside', role:'Son',      desc:'The brilliant 17 year old'  },
+  leah:    { name:'Leah',    locKey:'outside', role:'Daughter', desc:'The charming 15 year old'   }
+};
+const CHAR_IDS = ['bart','melissa','noah','leah'];
+
+const EMOTIONS = [
+  'Terrified','Panicked','Frozen','Horrified','Dread',
+  'Anxious','Apprehensive','Nervous','Tense','Overwhelmed',
+  'Shocked','Numb','Helpless','Stunned','Disoriented',
+  'Alert','Focused','Determined','Protective','Angry'
+];
+
+const SURVEY_QS = [
+  {
+    id:'q1', text:'How are you feeling in this exact moment?',
+    type:'emotion', options: EMOTIONS
+  },
+  {
+    id:'q2', text:'When something unexpected happens, your instinct is to:',
+    type:'btn-group', cols:4,
+    options:[
+      {v:'Fight',   label:'Fight',   sub:'Confront it head-on'},
+      {v:'Flight',  label:'Flight',  sub:'Get out fast'},
+      {v:'Freeze',  label:'Freeze',  sub:'Lock up completely'},
+      {v:'Fawn',    label:'Fawn',    sub:'Cooperate & de-escalate'}
+    ]
+  },
+  {
+    id:'q3', text:'When someone in authority tells you what to do, you:',
+    type:'opt-list',
+    options:[
+      'Follow immediately — it\'s usually the right call',
+      'Follow along, but quietly weigh your options',
+      'Go along with it for now, but trust your instincts',
+      'Follow orders only if they make sense to me',
+      'My instinct is to resist — being told what to do makes me push back'
+    ]
+  },
+  {
+    id:'q4', text:'In a group, you naturally tend to:',
+    type:'btn-group', cols:3,
+    options:[
+      {v:'Take charge',     label:'Take Charge',    sub:'Step up and lead'},
+      {v:'Support others',  label:'Support Others', sub:'Keep people calm'},
+      {v:'Go quiet',        label:'Go Quiet',       sub:'Observe and wait'}
+    ]
+  },
+  {
+    id:'q5', text:'When plans change unexpectedly, you:',
+    type:'btn-group', cols:2,
+    options:[
+      {v:'Stick to the plan', label:'Stick to the Plan', sub:'Stay the course'},
+      {v:'Improvise',         label:'Improvise',          sub:'Adapt in the moment'}
+    ]
+  },
+  {
+    id:'q6', text:'Walking into any room, you first notice:',
+    type:'btn-group', cols:3,
+    options:[
+      {v:'People',       label:'People',       sub:'Who\'s here and why'},
+      {v:'Exits',        label:'Exits',        sub:'How to get out'},
+      {v:'Details',      label:'Things & Details', sub:'Objects and environment'}
+    ]
+  }
+];
+
+const SYSTEM_PROMPT = `You are the narrator of an interactive family story called "What Would You Do?" You are running Scenario 1: a bank robbery in progress.
+
+THE SETUP
+A suburban branch of a large national bank, just after opening. Fluorescent lights, rope queue, generic and forgettable. 8-10 customers are present. Bart and Melissa are third in the teller line when three masked men burst through the front doors. A single shot fires into the ceiling. Everyone hits the floor. Bart and Melissa's two kids — Noah and Leah — are in the parking lot outside. They watched the robbers arrive.
+
+THE THREE ROBBERS
+- The Professional: The leader. Calm, controlled, economical with words. He has a plan and wants it executed cleanly. He is the most dangerous person in the room precisely because he isn't rattled.
+- The Hair-Trigger: Aggressive, pacing, volatile. He is looking for an excuse. Eye contact, slow movement, a wrong word — any of it could set him off.
+- The Kid: Young, visibly nervous, mask slightly crooked. He is in over his head and somewhere underneath the adrenaline he knows it. He is unpredictable in a different way — not dangerous because he wants to be, but because he might panic.
+
+THE PLAYERS
+- Bart — inside the bank, in line
+- Melissa — inside the bank, beside Bart
+- Noah — in the car in the parking lot
+- Leah — in the car in the parking lot
+
+CHARACTER CONTEXT
+Before the story began, each player answered six survey questions. Their answers represent their emotional baseline, instincts, and personality. Use these to inform how you narrate each person's actions and reactions throughout the story. Do not state these traits explicitly — weave them into the narration naturally.
+
+TENSION
+You will internally track a tension level from 1-10. Begin at 3. It is not shown to players.
+- Raise tension when players act impulsively, heroically, or in ways that could provoke the robbers
+- Lower tension when players act calmly, cooperatively, or defuse a moment
+- If tension reaches 10, the scene must resolve immediately — dramatically and not necessarily well
+- After round 5, resolve the scene regardless of tension level
+- The ending should feel earned by the decisions made — not random
+
+NARRATION RULES
+- Use the players' real names throughout
+- Bart and Melissa's actions take place inside the bank. Noah and Leah's actions take place in the parking lot. Keep these worlds distinct but let them affect each other — what happens outside has consequences inside and vice versa.
+- Start with 2-3 paragraphs. As tension increases, narration can expand toward 3 paragraphs. Reserve the longest, most vivid narration for the resolution.
+- Build tension naturally across rounds. Round 1 is chaos and first reactions. By round 3 something should have escalated or shifted. Round 5 forces resolution.
+- Never break the fourth wall or reference game mechanics.
+
+HONORING PLAYER ACTIONS — THIS IS THE MOST IMPORTANT RULE
+What the players type is what actually happens. Not a softened version. Not a redirected version. Not a safer version. What they type.
+
+If Bart tries to tackle a robber, Bart tackles a robber — and you narrate the real consequences of that, good or bad.
+If Noah runs into the bank, Noah runs into the bank — and the robbers see him.
+If Melissa tries to calm the young mom's toddler, that moment happens and it matters.
+If Leah calls 911, the police are coming — and that changes everything.
+
+Do not protect the players from their own decisions. Do not quietly steer the story toward safety. The whole point of this game is that choices have real weight. Honor that completely, every single round, without exception. The players earn their ending.
+
+MEMORY AND CONTINUITY
+You will receive the full history of the scene with every narration request. This is your memory. Treat it as ground truth.
+- Every detail you have already narrated is locked in. If Hair-Trigger moved to the back of the bank in round 2, he is at the back of the bank in round 3.
+- Every action a player has taken has already happened. Build on it — never reset it.
+- The robbers should feel like consistent characters across all five rounds. Their mood, position, and awareness of the players should evolve based on what has happened.
+- Continuity is what makes the story feel real. A detail remembered is a detail that matters.`;
+
+// ═══════════════════════════════════════════════════
+// LOCAL STATE
+// ═══════════════════════════════════════════════════
+let myCharacter   = null;
+let gameState     = {};
+let surveyAnswers = {};
+let twTimer       = null;
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  if (IS_GM) {
+    document.getElementById('gm-panel').style.display = 'block';
+    document.getElementById('app').style.paddingBottom = '140px';
+    const saved = sessionStorage.getItem('wwyd_apikey');
+    if (saved) document.getElementById('gm-api-key').value = saved;
+  }
+  db.ref(ROOT).on('value', snap => {
+    const data = snap.val() || {};
+    handleUpdate(data);
+  });
+});
+
+function handleUpdate(data) {
+  // Check reset token
+  const serverToken = data.resetToken || '';
+  const localToken  = localStorage.getItem('wwyd_token');
+  if (serverToken && localToken !== serverToken) {
+    localStorage.removeItem('wwyd_char');
+    localStorage.setItem('wwyd_token', serverToken);
+    myCharacter   = null;
+    surveyAnswers = {};
+  } else {
+    myCharacter = localStorage.getItem('wwyd_char');
+  }
+  gameState = data;
+  if (IS_GM) updateGMPanel(data);
+  render(data);
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER ROUTER
+// ═══════════════════════════════════════════════════
+function render(data) {
+  const phase = data.phase || 'character_select';
+  if      (phase === 'character_select') renderCharSelect(data);
+  else if (phase === 'survey')           renderSurvey(data);
+  else if (phase === 'waiting_survey')   renderWaitingSurvey(data);
+  else if (phase === 'opening')          renderNarration(data, 'opening');
+  else if (phase === 'round_input')      renderRoundInput(data);
+  else if (phase === 'waiting_round')    renderWaitingRound(data);
+  else if (phase === 'narrating')        renderNarration(data, 'round');
+  else if (phase === 'resolution')       renderResolution(data);
+}
+
+function pageHeader() {
+  return `<div class="header-bar">
+    <div class="game-title">What Would You Do?</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN: CHARACTER SELECT
+// ═══════════════════════════════════════════════════
+function renderCharSelect(data) {
+  const chars = data.characters || {};
+  const cards = CHAR_IDS.map(id => {
+    const c       = CHARACTERS[id];
+    const claimed = chars[id]?.claimed;
+    const isMe    = myCharacter === id;
+    const cardClass = isMe ? 'claimed' : (claimed ? 'taken' : '');
+    const badgeHTML = isMe
+      ? '<span class="char-badge badge-mine">YOU</span>'
+      : claimed ? '<span class="char-badge badge-taken">TAKEN</span>' : '';
+
+    return `<div class="char-card loc-${c.locKey} ${cardClass}" onclick="claimCharacter('${id}')">
+      ${badgeHTML}
+      <div class="char-name">${c.name}</div>
+      <div class="char-loc">${c.role}</div>
+      <div class="char-desc">${c.desc}</div>
+    </div>`;
+  }).join('');
+
+  const claimed = CHAR_IDS.filter(id => chars[id]?.claimed);
+  const unclaimed = CHAR_IDS.filter(id => !chars[id]?.claimed);
+
+  let bottomHTML = '';
+  if (myCharacter && unclaimed.length > 0) {
+    const names = unclaimed.map(id => CHARACTERS[id].name).join(', ');
+    bottomHTML = `<div class="card mt-20" style="text-align:center;padding:16px">
+      <div class="label" style="color:var(--amber)">Waiting for others to choose…</div>
+      <div class="body-text mt-8" style="font-size:0.82rem">${names} ${unclaimed.length === 1 ? 'hasn\'t' : 'haven\'t'} chosen yet</div>
+    </div>`;
+  }
+
+  document.getElementById('app').innerHTML = `
+    ${pageHeader()}
+    <div class="fade-up">
+      <div class="label mb-16">Choose your character</div>
+      <div class="char-grid">${cards}</div>
+      ${bottomHTML}
+    </div>`;
+}
+
+async function claimCharacter(id) {
+  if (myCharacter) return;
+  const chars = gameState.characters || {};
+  if (chars[id]?.claimed) return;
+
+  await db.ref(`${ROOT}/characters/${id}`).set({ claimed: true, claimedAt: Date.now() });
+  myCharacter = id;
+  localStorage.setItem('wwyd_char', id);
+
+  const allClaimed = CHAR_IDS.every(k => (k === id) || chars[k]?.claimed);
+  if (allClaimed) await db.ref(`${ROOT}/phase`).set('survey');
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN: SURVEY
+// ═══════════════════════════════════════════════════
+function renderSurvey(data) {
+  if (!myCharacter) {
+    document.getElementById('app').innerHTML = pageHeader() + `<div class="body-text">No character selected. Please refresh and choose a character.</div>`;
+    return;
+  }
+  const surveys = data.surveys || {};
+  if (surveys[myCharacter]?.submitted) { renderWaitingSurvey(data); return; }
+
+  const qHTML = SURVEY_QS.map((q, qi) => {
+    let inputHTML = '';
+    if (q.type === 'emotion') {
+      inputHTML = `<div class="emotion-grid">${q.options.map(e =>
+        `<div class="emotion-chip ${surveyAnswers[q.id]===e?'selected':''}" onclick="setSurveyAns('${q.id}','${e}')">${e}</div>`
+      ).join('')}</div>`;
+    } else if (q.type === 'opt-list') {
+      inputHTML = q.options.map(opt =>
+        `<button class="opt-btn ${surveyAnswers[q.id]===opt?'selected':''}" onclick="setSurveyAns('${q.id}',${JSON.stringify(opt)})">${opt}</button>`
+      ).join('');
+    } else if (q.type === 'btn-group') {
+      const colClass = `cols-${q.cols}`;
+      inputHTML = `<div class="btn-group ${colClass}">${q.options.map(opt =>
+        `<div class="btn-opt ${surveyAnswers[q.id]===opt.v?'selected':''}" onclick="setSurveyAns('${q.id}','${opt.v}')">
+          <span class="opt-label">${opt.label}</span>
+          <span class="opt-sub">${opt.sub}</span>
+        </div>`
+      ).join('')}</div>`;
+    }
+
+    return `<div class="card mt-12">
+      <div class="label mb-8">Question ${qi+1} of ${SURVEY_QS.length}</div>
+      <div style="font-size:0.95rem;font-weight:500;margin-bottom:14px">${q.text}</div>
+      ${inputHTML}
+    </div>`;
+  }).join('');
+
+  const allAnswered = SURVEY_QS.every(q => surveyAnswers[q.id]);
+  const charName = CHARACTERS[myCharacter].name;
+
+  document.getElementById('app').innerHTML = `
+    ${pageHeader()}
+    <div class="fade-up">
+      <div class="body-text">A quick personality survey. Answer honestly — there are no right or wrong answers. <strong style="color:var(--text)">Only Claude will see your responses.</strong></div>
+      <div class="label mt-8" style="color:var(--accent)">Answering as ${charName}</div>
+      ${qHTML}
+      <div class="mt-20">
+        <button class="btn btn-primary btn-full" onclick="submitSurvey()" ${allAnswered?'':'disabled'}>
+          Submit My Answers
+        </button>
+      </div>
+    </div>`;
+}
+
+function setSurveyAns(qId, val) {
+  surveyAnswers[qId] = val;
+  renderSurvey(gameState);
+}
+
+async function submitSurvey() {
+  if (!myCharacter || !SURVEY_QS.every(q => surveyAnswers[q.id])) return;
+
+  // Build human-readable answers
+  const readable = {};
+  SURVEY_QS.forEach(q => {
+    if (q.type === 'btn-group') {
+      const opt = q.options.find(o => o.v === surveyAnswers[q.id]);
+      readable[q.id] = opt ? `${opt.label} — ${opt.sub}` : surveyAnswers[q.id];
+    } else {
+      readable[q.id] = surveyAnswers[q.id];
+    }
+  });
+
+  await db.ref(`${ROOT}/surveys/${myCharacter}`).set({ ...readable, submitted: true });
+
+  // Check if all 4 submitted
+  const updatedSurveys = { ...(gameState.surveys || {}), [myCharacter]: { submitted: true } };
+  if (CHAR_IDS.every(id => updatedSurveys[id]?.submitted)) {
+    await db.ref(`${ROOT}/phase`).set('waiting_survey');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN: WAITING (SURVEY)
+// ═══════════════════════════════════════════════════
+function renderWaitingSurvey(data) {
+  const surveys = data.surveys || {};
+  const items = CHAR_IDS.map(id => {
+    const done = surveys[id]?.submitted;
+    return `<div class="waiting-item ${done?'done':'pending'}">
+      <div class="waiting-dot"></div>
+      <div>
+        <div class="waiting-name">${CHARACTERS[id].name}</div>
+        <div class="waiting-sub">${done ? 'Ready' : 'Still answering…'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('app').innerHTML = `
+    ${pageHeader()}
+    <div class="fade-up" style="text-align:center;padding:32px 0">
+      <div class="section-title" style="color:var(--muted)">Waiting for Everyone</div>
+      <div class="body-text mt-8 mb-24">The story begins when all four surveys are complete.</div>
+      <div class="waiting-grid">${items}</div>
+      ${IS_GM && CHAR_IDS.every(id=>surveys[id]?.submitted) 
+        ? '<div class="label mt-20" style="color:var(--amber)">All surveys in — use GM panel to fire opening.</div>' 
+        : ''}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN: ROUND INPUT
+// ═══════════════════════════════════════════════════
+function renderRoundInput(data) {
+  const round   = data.currentRound || 1;
+  const actions = data.rounds?.[round]?.actions || {};
+  if (myCharacter && actions[myCharacter]?.submitted) { renderWaitingRound(data); return; }
+
+  const myChar = myCharacter ? CHARACTERS[myCharacter] : null;
+  const locClass = myChar?.locKey === 'inside' ? 'inside' : 'outside';
+
+  // Previous narration snippet
+  let prevNarration = '';
+  if (round === 1) prevNarration = data.openingNarration || '';
+  else             prevNarration = data.rounds?.[round-1]?.narration || '';
+
+  document.getElementById('app').innerHTML = `
+    ${pageHeader()}
+    <div class="fade-up">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <span class="round-badge">Round ${round} of 5</span>
+        ${myChar ? `<span class="label" style="font-size:0.68rem;color:var(--muted)">${myChar.name} — ${myChar.role}</span>` : ''}
+      </div>
+
+      ${prevNarration ? `
+        <div class="mb-16">
+          <div class="label mb-8">What just happened</div>
+          <div class="narration-history">${prevNarration}</div>
+        </div>` : ''}
+
+      <div class="card">
+        <div class="label mb-8">What do you do?</div>
+        <textarea id="action-input" class="action-input"
+          placeholder="Describe your action in detail. Be specific — what you type is what happens…"
+        ></textarea>
+        <div class="mt-12">
+          <button class="btn btn-primary btn-full" onclick="submitAction()">Submit My Action</button>
+        </div>
+      </div>
+
+      <div class="body-text mt-12" style="font-size:0.8rem">
+        Your action will be combined with everyone else's before the story continues.
+      </div>
+    </div>`;
+}
+
+async function submitAction() {
+  if (!myCharacter) return;
+  const text = document.getElementById('action-input')?.value?.trim();
+  if (!text) return;
+
+  const round = gameState.currentRound || 1;
+  await db.ref(`${ROOT}/rounds/${round}/actions/${myCharacter}`).set({ text, submitted: true, submittedAt: Date.now() });
+
+  // Check if all 4 submitted
+  const updatedActions = { ...(gameState.rounds?.[round]?.actions || {}), [myCharacter]: { submitted: true } };
+  if (CHAR_IDS.every(id => updatedActions[id]?.submitted)) {
+    await db.ref(`${ROOT}/phase`).set('waiting_round');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN: WAITING (ROUND)
+// ═══════════════════════════════════════════════════
+function renderWaitingRound(data) {
+  const round   = data.currentRound || 1;
+  const actions = data.rounds?.[round]?.actions || {};
+  const allIn   = CHAR_IDS.every(id => actions[id]?.submitted);
+
+  const items = CHAR_IDS.map(id => {
+    const done = actions[id]?.submitted;
+    return `<div class="waiting-item ${done?'done':'pending'}">
+      <div class="waiting-dot"></div>
+      <div>
+        <div class="waiting-name">${CHARACTERS[id].name}</div>
+        <div class="waiting-sub">${done ? 'Action in' : 'Still deciding…'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('app').innerHTML = `
+    ${pageHeader()}
+    <div class="fade-up" style="text-align:center;padding:32px 0">
+      <span class="round-badge" style="display:inline-block;margin-bottom:16px">Round ${round} of 5</span>
+      <div class="section-title" style="color:var(--muted)">Waiting for Everyone</div>
+      <div class="body-text mt-8 mb-24">The story continues when all four actions are in.</div>
+      <div class="waiting-grid">${items}</div>
+      ${allIn ? '<div class="label mt-20" style="color:var(--amber)">All actions in — narration coming soon…</div>' : ''}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN: NARRATION
+// ═══════════════════════════════════════════════════
+function renderNarration(data, type) {
+  let text = '', startedAt = Date.now();
+
+  if (type === 'opening') {
+    text      = data.openingNarration  || '';
+    startedAt = data.openingNarratedAt || Date.now();
+  } else {
+    const prevRound = (data.currentRound || 2) - 1;
+    text      = data.rounds?.[prevRound]?.narration  || '';
+    startedAt = data.rounds?.[prevRound]?.narratedAt || Date.now();
+  }
+
+  const nextRound = data.currentRound || 1;
+  const continueLabel = type === 'opening'
+    ? 'Begin Round 1'
+    : `Begin Round ${nextRound}`;
+
+  document.getElementById('app').innerHTML = `
+    ${pageHeader()}
+    <div class="fade-up">
+      ${type === 'round' ? `<div class="round-badge mb-20">Round ${nextRound - 1} — Narration</div>` : ''}
+      <div id="narration-text" class="narration-text"></div><span id="tw-cursor" class="tw-cursor"></span>
+      <div id="narration-continue" style="display:none;margin-top:28px">
+        <button class="btn btn-ghost" onclick="advanceFromNarration()">${continueLabel} →</button>
+      </div>
+    </div>`;
+
+  if (twTimer) clearInterval(twTimer);
+  startTypewriter(text, startedAt);
+}
+
+function startTypewriter(text, startedAt) {
+  if (!text) return;
+  const SPEED   = 20;
+  const elapsed = Date.now() - startedAt;
+  let i = Math.min(Math.floor(elapsed / SPEED), text.length);
+
+  const el     = document.getElementById('narration-text');
+  const cursor = document.getElementById('tw-cursor');
+  const btn    = document.getElementById('narration-continue');
+  if (!el) return;
+
+  el.textContent = text.substring(0, i);
+
+  if (i >= text.length) {
+    if (cursor) cursor.style.display = 'none';
+    if (btn)    btn.style.display    = 'block';
+    return;
+  }
+
+  twTimer = setInterval(() => {
+    i++;
+    const el2 = document.getElementById('narration-text');
+    if (!el2) { clearInterval(twTimer); return; }
+    el2.textContent = text.substring(0, i);
+    // Auto scroll
+    el2.scrollIntoView({ behavior:'smooth', block:'end' });
+    if (i >= text.length) {
+      clearInterval(twTimer);
+      const c = document.getElementById('tw-cursor');
+      const b = document.getElementById('narration-continue');
+      if (c) c.style.display = 'none';
+      if (b) b.style.display = 'block';
+    }
+  }, SPEED);
+}
+
+async function advanceFromNarration() {
+  const phase = gameState.phase;
+  if (phase === 'opening') {
+    await db.ref(ROOT).update({ phase:'round_input', currentRound:1 });
+  } else if (phase === 'narrating') {
+    await db.ref(ROOT).update({ phase:'round_input' });
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN: RESOLUTION
+// ═══════════════════════════════════════════════════
+function renderResolution(data) {
+  const text      = data.resolution  || '';
+  const startedAt = data.resolvedAt  || Date.now();
+
+  document.getElementById('app').innerHTML = `
+    ${pageHeader()}
+    <div class="fade-up">
+      <div class="section-title mb-20" style="color:var(--accent)">The Outcome</div>
+      <div id="narration-text" class="narration-text"></div><span id="tw-cursor" class="tw-cursor"></span>
+      <div id="narration-continue" style="display:none;margin-top:36px;text-align:center">
+        <div class="label mb-16" style="color:var(--muted)">— The End —</div>
+        ${IS_GM ? '<button class="btn btn-ghost" onclick="gmReset()">Play Again</button>' : ''}
+      </div>
+    </div>`;
+
+  if (twTimer) clearInterval(twTimer);
+  startTypewriter(text, startedAt);
+}
+
+// ═══════════════════════════════════════════════════
+// GM PANEL
+// ═══════════════════════════════════════════════════
+function updateGMPanel(data) {
+  const phase       = data.phase || 'character_select';
+  const fireBtn     = document.getElementById('gm-fire-btn');
+  const narrateBtn  = document.getElementById('gm-narrate-btn');
+  const statusEl    = document.getElementById('gm-status');
+  const previewEl   = document.getElementById('gm-actions-preview');
+  if (!fireBtn) return;
+
+  fireBtn.style.display    = 'none';
+  narrateBtn.style.display = 'none';
+  previewEl.style.display  = 'none';
+
+  if (phase === 'waiting_survey') {
+    fireBtn.style.display = 'inline-block';
+    fireBtn.disabled      = false;
+    if (statusEl) statusEl.textContent = 'All surveys in — ready to fire opening.';
+  } else if (phase === 'waiting_round') {
+    const round  = data.currentRound || 1;
+    const acts   = data.rounds?.[round]?.actions || {};
+    const allIn  = CHAR_IDS.every(id => acts[id]?.submitted);
+    narrateBtn.style.display = 'inline-block';
+    narrateBtn.disabled      = !allIn;
+
+    // Show actions preview
+    if (allIn) {
+      const preview = CHAR_IDS.map(id => {
+        const loc = CHARACTERS[id].locKey === 'inside' ? 'inside' : 'outside';
+        return `<strong>${CHARACTERS[id].name}</strong> [${loc}]: ${acts[id]?.text || '—'}`;
+      }).join('\n');
+      previewEl.style.display  = 'block';
+      previewEl.textContent    = preview;
+      if (statusEl) statusEl.textContent = `Round ${round} — all actions in.`;
+    } else {
+      if (statusEl) statusEl.textContent = `Round ${round} — waiting for actions…`;
+    }
+  } else {
+    if (statusEl) statusEl.textContent = `Phase: ${phase}`;
+  }
+}
+
+function gmSetKey() {
+  const key = document.getElementById('gm-api-key').value.trim();
+  if (!key) return;
+  sessionStorage.setItem('wwyd_apikey', key);
+  document.getElementById('gm-status').textContent = 'API key saved.';
+}
+
+async function gmFireOpening() {
+  const apiKey = sessionStorage.getItem('wwyd_apikey');
+  if (!apiKey) { alert('Set your API key first.'); return; }
+  const btn = document.getElementById('gm-fire-btn');
+  btn.disabled    = true;
+  btn.textContent = 'Generating…';
+  try {
+    const narration = await callClaudeOpening(apiKey);
+    const now = Date.now();
+    await db.ref(ROOT).update({ openingNarration: narration, openingNarratedAt: now, phase: 'opening' });
+    btn.textContent = 'Fire Opening';
+  } catch(e) {
+    alert('Claude error: ' + e.message);
+    btn.disabled    = false;
+    btn.textContent = 'Fire Opening';
+  }
+}
+
+async function gmNarrate() {
+  const apiKey = sessionStorage.getItem('wwyd_apikey');
+  if (!apiKey) { alert('Set your API key first.'); return; }
+  const btn = document.getElementById('gm-narrate-btn');
+  btn.disabled    = true;
+  btn.textContent = 'Generating…';
+  try {
+    const round  = gameState.currentRound || 1;
+    const isLast = round >= 5;
+    const narration = await callClaudeRound(apiKey, round, isLast);
+    const now = Date.now();
+
+    if (isLast) {
+      await db.ref(ROOT).update({
+        [`rounds/${round}/narration`]:  narration,
+        [`rounds/${round}/narratedAt`]: now,
+        resolution: narration,
+        resolvedAt: now,
+        phase: 'resolution'
+      });
+    } else {
+      await db.ref(ROOT).update({
+        [`rounds/${round}/narration`]:  narration,
+        [`rounds/${round}/narratedAt`]: now,
+        phase:        'narrating',
+        currentRound: round + 1
+      });
+    }
+    btn.textContent = 'Narrate Round';
+  } catch(e) {
+    alert('Claude error: ' + e.message);
+    btn.disabled    = false;
+    btn.textContent = 'Narrate Round';
+  }
+}
+
+async function gmReset() {
+  if (!confirm('Reset the entire game? All progress will be lost.')) return;
+  await db.ref(ROOT).set({ phase: 'character_select', resetToken: Date.now().toString(36) });
+}
+
+// ═══════════════════════════════════════════════════
+// CLAUDE API
+// ═══════════════════════════════════════════════════
+async function callClaude(apiKey, messages) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model:      'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system:     SYSTEM_PROMPT,
+      messages
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content.map(b => b.text || '').join('');
+}
+
+function surveyText() {
+  return CHAR_IDS.map(id => {
+    const s = gameState.surveys?.[id];
+    if (!s) return null;
+    const loc = CHARACTERS[id].locKey === 'inside' ? 'inside the bank' : 'in the car outside';
+    return `${CHARACTERS[id].name} (${loc}):\n` +
+      `  Emotional state: ${s.q1}\n` +
+      `  Instinct:        ${s.q2}\n` +
+      `  Authority:       ${s.q3}\n` +
+      `  Group role:      ${s.q4}\n` +
+      `  Decision style:  ${s.q5}\n` +
+      `  First notices:   ${s.q6}`;
+  }).filter(Boolean).join('\n\n');
+}
+
+async function callClaudeOpening(apiKey) {
+  const messages = [{
+    role: 'user',
+    content: `The four players have completed their pre-story survey. Here are their answers:\n\n${surveyText()}\n\nPlease narrate the opening scene. Establish the bank on a quiet Tuesday morning. Bring in the family's arrival, and build to the moment the robbers burst through the doors — the gunshot, the shouting, everyone hitting the floor. End just as the chaos begins, leaving the players at the edge of their first decision.`
+  }];
+  return callClaude(apiKey, messages);
+}
+
+async function callClaudeRound(apiKey, round, isLast) {
+  const messages = [];
+
+  // Opening exchange
+  messages.push({
+    role: 'user',
+    content: `The four players have completed their pre-story survey.\n\n${surveyText()}\n\nPlease narrate the opening scene.`
+  });
+  messages.push({ role: 'assistant', content: gameState.openingNarration || '' });
+
+  // All previous rounds
+  for (let r = 1; r < round; r++) {
+    const rData = gameState.rounds?.[r];
+    if (!rData) continue;
+    const actText = CHAR_IDS.map(id => {
+      const a = rData.actions?.[id];
+      if (!a) return null;
+      const loc = CHARACTERS[id].locKey === 'inside' ? 'inside the bank' : 'in the car outside';
+      return `${CHARACTERS[id].name} (${loc}): ${a.text}`;
+    }).filter(Boolean).join('\n');
+    messages.push({ role: 'user',      content: `Round ${r} actions:\n${actText}` });
+    messages.push({ role: 'assistant', content: rData.narration || '' });
+  }
+
+  // Current round actions
+  const curActs = gameState.rounds?.[round]?.actions || {};
+  const actText = CHAR_IDS.map(id => {
+    const a = curActs[id];
+    if (!a) return null;
+    const loc = CHARACTERS[id].locKey === 'inside' ? 'inside the bank' : 'in the car outside';
+    return `${CHARACTERS[id].name} (${loc}): ${a.text}`;
+  }).filter(Boolean).join('\n');
+
+  const finalNote = isLast
+    ? '\n\nThis is the final round. Bring the scene to a complete, definitive resolution. The ending — whether clean, chaotic, or somewhere in between — should be a direct consequence of every choice that has been made.'
+    : '';
+
+  messages.push({ role: 'user', content: `Round ${round} actions:\n${actText}${finalNote}` });
+
+  return callClaude(apiKey, messages);
+}
+</script>
+</body>
+</html>
