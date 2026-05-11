@@ -706,7 +706,7 @@ function renderSurvey(data) {
       ).join('')}</div>`;
     } else if (q.type === 'opt-list') {
       inputHTML = q.options.map((opt, i) =>
-        `<button class="opt-btn ${surveyAnswers[q.id]===opt?'selected':''}" onclick="setSurveyOptList('${q.id}',${i})">${opt}</button>`
+        `<div class="opt-btn ${surveyAnswers[q.id]===opt?'selected':''}" onclick="setSurveyOptList('${q.id}',${i})">${opt}</div>`
       ).join('');
     } else if (q.type === 'btn-group') {
       const colClass = `cols-${q.cols}`;
