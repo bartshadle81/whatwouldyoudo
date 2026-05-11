@@ -597,12 +597,12 @@ function handleUpdate(data) {
   const serverToken = data.resetToken || '';
   const localToken  = localStorage.getItem('wwyd_token');
   if (serverToken && localToken !== serverToken) {
-    localStorage.removeItem('wwyd_char');
+    sessionStorage.removeItem('wwyd_char');
     localStorage.setItem('wwyd_token', serverToken);
     myCharacter   = null;
     surveyAnswers = {};
   } else {
-    myCharacter = localStorage.getItem('wwyd_char');
+    myCharacter = sessionStorage.getItem('wwyd_char');
   }
   gameState = data;
   if (IS_GM) updateGMPanel(data);
@@ -680,7 +680,7 @@ async function claimCharacter(id) {
 
   await db.ref(`${ROOT}/characters/${id}`).set({ claimed: true, claimedAt: Date.now() });
   myCharacter = id;
-  localStorage.setItem('wwyd_char', id);
+  sessionStorage.setItem('wwyd_char', id);
 
   const allClaimed = CHAR_IDS.every(k => (k === id) || chars[k]?.claimed);
   if (allClaimed) await db.ref(`${ROOT}/phase`).set('survey');
