@@ -407,6 +407,36 @@
       display: none;
     }
 
+
+    /* ── Scenario selector ── */
+    .scenario-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 32px; }
+    .scenario-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 28px 20px;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s;
+      text-align: center;
+    }
+    .scenario-card:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .scenario-card.active { border-color: var(--accent); background: var(--accent-dim); }
+    .scenario-number {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 4rem;
+      color: var(--accent);
+      line-height: 1;
+      letter-spacing: 0.05em;
+    }
+    .scenario-icon {
+      color: var(--muted);
+      margin-bottom: 12px;
+      transition: color 0.18s;
+    }
+    .scenario-card:hover .scenario-icon,
+    .scenario-card.active .scenario-icon { color: var(--accent); }
+    @media (max-width: 700px) { .scenario-grid { grid-template-columns: 1fr; } }
+
     @media (max-width: 520px) {
       .char-grid    { grid-template-columns: 1fr; }
       .waiting-grid { grid-template-columns: 1fr; }
@@ -448,8 +478,9 @@ const FIREBASE_CONFIG = {
   appId:             "1:152488119573:web:5b09e70923396141b96d1c"
 };
 firebase.initializeApp(FIREBASE_CONFIG);
-const db   = firebase.database();
-const ROOT = 'whatWouldYouDo';
+const db      = firebase.database();
+const DB_ROOT  = 'whatWouldYouDo';
+let activeScenario = null;
 
 // ═══════════════════════════════════════════════════
 // CONSTANTS
@@ -577,6 +608,181 @@ You will receive the full history of the scene with every narration request. Thi
 - The robbers should feel like consistent characters across all five rounds. Their mood, position, and awareness of the players should evolve based on what has happened.
 - Continuity is what makes the story feel real. A detail remembered is a detail that matters.`;
 
+
+const SYSTEM_PROMPT_2 = `You are the narrator of an interactive family story called "What Would You Do?" You are running Scenario 2: a car accident on a dark highway.
+
+THE SETUP
+Early Saturday morning, light traffic. The Shadle family is in the car heading to an escape room — a rare treat, everyone in good spirits. Bart is driving. Melissa is in the passenger seat. Noah and Leah are in the back. They round a bend and the headlights reveal two wrecked cars on the road ahead. They are the first to arrive. No other cars are visible. The road is quiet.
+
+THE TWO VEHICLES
+
+The Smoking Car: An upright sedan with a small fire burning under the hood. Not dangerous yet — but it is growing. Inside: a young mom, dazed and conscious but not fully coherent. A baby is strapped into a car seat in the back. The baby's status is unknown.
+
+The Flipped Car: A car that has rolled completely onto its roof. Complete silence. No movement. No sound. A couple is visible inside — two adults. There appears to be no one else in the vehicle.
+
+THE HIDDEN CHILD — CRITICAL NARRATIVE RULE
+There is a small child strapped into a car seat in the back of the flipped car. You know this from the beginning. You do not reveal it until a player physically approaches the flipped car, looks inside, or reaches through a window. Until that moment, narrate only what is visible from a distance — two silent adults. The moment of discovery should land with full weight. Do not soften it or foreshadow it.
+
+THE PLAYERS
+- Bart — in the driver's seat, first to stop the car
+- Melissa — in the passenger seat, first to open her door
+- Noah — in the back seat, watching through the window
+- Leah — in the back seat, watching through the window
+
+Noah and Leah begin inside the family car. Whether they get out is a decision the family must make — it is not assumed. If no one addresses it in Round 1, they remain in the car watching.
+
+CHARACTER CONTEXT
+Before the story began, each player answered six survey questions. Their answers represent their emotional baseline, instincts, and personality. Use these to inform how you narrate each person's actions and reactions throughout the story. Do not state these traits explicitly — weave them into the narration naturally.
+
+TENSION
+You will internally track a tension level from 1-10. Begin at 4. It is not shown to players.
+- Raise tension when players hesitate, make conflicting decisions, or split attention in dangerous ways
+- Raise tension as the hood fire grows — it should feel like a presence that gets louder each round
+- Lower tension when players act decisively, coordinate well, or successfully help someone
+- If tension reaches 10, the scene resolves immediately and not necessarily well
+- After round 5, resolve the scene regardless of tension level
+- The ending should feel earned by the decisions made
+
+NARRATION RULES
+- Use the players' real names throughout
+- Bart and Melissa are outside the car quickly. Noah and Leah's involvement depends entirely on player decisions — never assume they exit the vehicle unless a player directs them to.
+- The hood fire should grow subtly each round — a background threat that becomes a foreground crisis if ignored
+- The flipped car's silence is the emotional weight of the scene. Do not rush to fill it.
+- The hidden child's situation deteriorates silently with each round that passes without someone reaching them.
+- Start with 2-3 paragraphs. As tension increases, narration can expand toward 3 paragraphs. Reserve the longest, most vivid narration for the resolution.
+- Build across rounds: Round 1 is arrival and first shock. By round 3 the fire is becoming urgent and the flipped car's secret should be close to discovery. Round 5 forces resolution.
+- Never break the fourth wall or reference game mechanics.
+
+HONORING PLAYER ACTIONS — THIS IS THE MOST IMPORTANT RULE
+What the players type is what actually happens. Not a softened version. Not a redirected version. Not a safer version. What they type.
+
+If Bart pulls someone from the smoking car, that happens — and you narrate whether it helps or makes things worse.
+If Melissa reaches into the flipped car, she finds what is there.
+If Noah calls 911 and stays on the line, the dispatcher is on the phone for the rest of the scene.
+If Leah freezes and cannot move, she freezes — and that is part of the story.
+
+Do not protect the players from their own decisions. The whole point of this game is that choices have real weight. Honor that completely, every single round, without exception.
+
+MEMORY AND CONTINUITY
+You will receive the full history of the scene with every narration request. This is your memory. Treat it as ground truth.
+- Every detail you have already narrated is locked in. If the fire reached the windshield in round 3, it is at the windshield in round 4.
+- Track the status of every person at the scene — the mom, the baby, the couple in the flipped car, the hidden child — and evolve their situations based on what players do and do not do.
+- Continuity is what makes the story feel real. A detail remembered is a detail that matters.`;
+
+
+const SYSTEM_PROMPT_3 = `You are the narrator of an interactive family story called "What Would You Do?" You are running Scenario 3: something in the forest.
+
+THE SETUP
+Late afternoon on a dense forest trail, light fading fast, long shadows stretching between the trees. The Shadle family is hiking together — Bart, Melissa, Noah, and Leah — just a casual day hike, water bottles and phones, nothing special. The trail is narrow with trees pressing close on both sides. Nobody else is around. They haven't seen another hiker in over an hour.
+
+Then they stop walking. Because something in the brush is moving. Something massive.
+
+THE BEAST
+It is wolf-like, but wrong. Far too large — the proportions don't make sense for anything that should exist. When it finally becomes visible through the trees, it doesn't look like a big wolf. It looks like something that was built to look like a wolf and got the scale catastrophically wrong. Its movement is slightly off. The way it holds its head. The way it watches.
+
+It looks extraordinarily dangerous.
+
+Whether it is dangerous is entirely up to how the family behaves.
+
+THE BEAST'S BEHAVIOR — CRITICAL RULE
+The beast has no predetermined disposition. It is not friendly. It is not hostile. It is watching. Its response to the family is shaped entirely by their choices — what they do, how they move, what energy they bring to each round. There is no correct approach. Panic might provoke it. Stillness might invite it closer. Noise might drive it off or enrage it. You decide how it responds based on the cumulative weight of every decision made. Make it feel alive, unpredictable, and genuinely unknowable.
+
+THE GOAL
+The family needs to get off the trail and back to safety. The path back the way they came is still open — but the beast is between them and it. There may be other options in the forest if someone looks. Escape is possible. It is not guaranteed.
+
+THE PLAYERS
+All four family members are together on the trail when it begins:
+- Bart — at the front of the group, closest to the sound
+- Melissa — beside Bart, slightly behind
+- Noah — a few steps back, with a clear sightline through the trees
+- Leah — beside Noah, heard it first before anyone else reacted
+
+CHARACTER CONTEXT
+Before the story began, each player answered six survey questions. Their answers represent their emotional baseline, instincts, and personality. Use these to inform how you narrate each person's actions and reactions throughout the story. Do not state these traits explicitly — weave them into the narration naturally.
+
+TENSION
+You will internally track a tension level from 1-10. Begin at 5. It is not shown to players.
+- The beast's behavior is your primary tool for tension — use it accordingly
+- Raise tension when the family fragments, acts impulsively, or makes sudden movements
+- Lower tension when the family coordinates quietly, moves slowly and deliberately, or does something that genuinely gives the beast pause
+- If tension reaches 10, the beast acts — and the consequences are real
+- After round 5, resolve the scene regardless of tension level
+- The ending should feel earned
+
+NARRATION RULES
+- Use the players' real names throughout
+- The beast is always present unless a player action explicitly changes that — it does not wander off between rounds
+- Describe the beast economically. What makes it terrifying is what you do not fully explain. Resist the urge to over-describe. Let the wrongness land in small details.
+- The forest is a character too — the fading light, the silence of the birds, the way the shadows move
+- Start with 2-3 paragraphs. As tension increases, narration can expand toward 3 paragraphs. Reserve the longest, most vivid narration for the resolution.
+- Build across rounds: Round 1 is the first visual contact and pure instinct. By round 3 the family has made meaningful choices and the beast has responded. Round 5 forces resolution.
+- Never break the fourth wall or reference game mechanics.
+
+HONORING PLAYER ACTIONS — THIS IS THE MOST IMPORTANT RULE
+What the players type is what actually happens. Not a softened version. Not a redirected version. Not a safer version. What they type.
+
+If Bart steps toward the beast, Bart steps toward the beast — and it reacts to that.
+If Noah throws something to create a distraction, that happens — with real consequences.
+If Melissa tries to pull the family back slowly, that deliberate retreat is narrated fully.
+If Leah screams, the forest hears it. So does the beast.
+
+Do not protect the players from their own decisions. Honor every action completely, every single round, without exception.
+
+MEMORY AND CONTINUITY
+You will receive the full history of the scene with every narration request. This is your memory. Treat it as ground truth.
+- The beast's position, posture, and demeanor must evolve consistently based on what has happened
+- If it stepped closer in round 2, it is closer in round 3
+- If a player established something about the environment — a gap in the trees, a sound in the distance — carry it forward
+- The family's emotional state should visibly accumulate across rounds
+- Continuity is what makes the story feel real. A detail remembered is a detail that matters.`;
+
+const SCENARIOS = {
+  scenario1: {
+    id:     'scenario1',
+    number: '01',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+    prompt: SYSTEM_PROMPT
+  },
+  scenario2: {
+    id:     'scenario2',
+    number: '02',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+    prompt: SYSTEM_PROMPT_2
+  },
+  scenario3: {
+    id:     'scenario3',
+    number: '03',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="M12 22V12"/><path d="M12 12C12 12 7 9 7 5a5 5 0 0 1 10 0c0 4-5 7-5 7z"/><path d="M9 17c-2 1-4 2-4 3h14c0-1-2-2-4-3"/></svg>`,
+    prompt: SYSTEM_PROMPT_3
+  }
+};
+
+const SCENARIO_LOCS = {
+  scenario1: {
+    bart:    'inside the bank',
+    melissa: 'inside the bank',
+    noah:    'in the parking lot outside',
+    leah:    'in the parking lot outside'
+  },
+  scenario2: {
+    bart:    'driving the family car',
+    melissa: 'passenger seat',
+    noah:    'back seat of the family car',
+    leah:    'back seat of the family car'
+  },
+  scenario3: {
+    bart:    'on the trail at the front of the group',
+    melissa: 'on the trail beside Bart',
+    noah:    'on the trail a few steps back',
+    leah:    'on the trail beside Noah'
+  }
+};
+
+function charLoc(id) {
+  const locs = SCENARIO_LOCS[activeScenario] || SCENARIO_LOCS.scenario1;
+  return locs[id] || '';
+}
+
 // ═══════════════════════════════════════════════════
 // LOCAL STATE
 // ═══════════════════════════════════════════════════
@@ -595,7 +801,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const saved = sessionStorage.getItem('wwyd_apikey');
     if (saved) document.getElementById('gm-api-key').value = saved;
   }
-  db.ref(ROOT).on('value', snap => {
+  db.ref(DB_ROOT).on('value', snap => {
     const data = snap.val() || {};
     handleUpdate(data);
   });
@@ -608,14 +814,24 @@ function handleUpdate(data) {
   if (serverToken && localToken !== serverToken) {
     sessionStorage.removeItem('wwyd_char');
     localStorage.setItem('wwyd_token', serverToken);
-    myCharacter   = null;
-    surveyAnswers = {};
+    myCharacter    = null;
+    surveyAnswers  = {};
+    activeScenario = null;
   } else {
     myCharacter = sessionStorage.getItem('wwyd_char');
   }
-  gameState = data;
-  if (IS_GM) updateGMPanel(data);
-  render(data);
+
+  activeScenario = data.selectedScenario || null;
+  const scenarioData = activeScenario ? (data[activeScenario] || {}) : {};
+  gameState = scenarioData;
+
+  if (IS_GM) updateGMPanel(scenarioData);
+
+  if (!activeScenario) {
+    renderScenarioSelect(data);
+  } else {
+    render(scenarioData);
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -637,6 +853,31 @@ function pageHeader() {
   return `<div class="header-bar">
     <div class="game-title">What Would You Do?</div>
   </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN: SCENARIO SELECT
+// ═══════════════════════════════════════════════════
+function renderScenarioSelect(data) {
+  const cards = Object.values(SCENARIOS).map(s => `
+    <div class="scenario-card" onclick="selectScenario('${s.id}')">
+      <div class="scenario-icon">${s.icon}</div>
+      <div class="scenario-number">${s.number}</div>
+    </div>`
+  ).join('');
+
+  document.getElementById('app').innerHTML = `
+    <div class="header-bar">
+      <div class="game-title">What Would You Do?</div>
+    </div>
+    <div class="fade-up" style="text-align:center;padding-top:20px">
+      <div class="label">Choose a scenario</div>
+      <div class="scenario-grid">${cards}</div>
+    </div>`;
+}
+
+async function selectScenario(id) {
+  await db.ref(DB_ROOT).update({ selectedScenario: id });
 }
 
 // ═══════════════════════════════════════════════════
@@ -687,12 +928,12 @@ async function claimCharacter(id) {
   const chars = gameState.characters || {};
   if (chars[id]?.claimed) return;
 
-  await db.ref(`${ROOT}/characters/${id}`).set({ claimed: true, claimedAt: Date.now() });
+  await db.ref(`${DB_ROOT}/${activeScenario}/characters/${id}`).set({ claimed: true, claimedAt: Date.now() });
   myCharacter = id;
   sessionStorage.setItem('wwyd_char', id);
 
   const allClaimed = CHAR_IDS.every(k => (k === id) || chars[k]?.claimed);
-  if (allClaimed) await db.ref(`${ROOT}/phase`).set('survey');
+  if (allClaimed) await db.ref(`${DB_ROOT}/${activeScenario}/phase`).set('survey');
 }
 
 // ═══════════════════════════════════════════════════
@@ -766,12 +1007,12 @@ async function submitSurvey() {
     }
   });
 
-  await db.ref(`${ROOT}/surveys/${myCharacter}`).set({ ...readable, submitted: true });
+  await db.ref(`${DB_ROOT}/${activeScenario}/surveys/${myCharacter}`).set({ ...readable, submitted: true });
 
   // Check if all 4 submitted
   const updatedSurveys = { ...(gameState.surveys || {}), [myCharacter]: { submitted: true } };
   if (CHAR_IDS.every(id => updatedSurveys[id]?.submitted)) {
-    await db.ref(`${ROOT}/phase`).set('waiting_survey');
+    await db.ref(`${DB_ROOT}/${activeScenario}/phase`).set('waiting_survey');
   }
 }
 
@@ -854,12 +1095,12 @@ async function submitAction() {
   if (!text) return;
 
   const round = gameState.currentRound || 1;
-  await db.ref(`${ROOT}/rounds/${round}/actions/${myCharacter}`).set({ text, submitted: true, submittedAt: Date.now() });
+  await db.ref(`${DB_ROOT}/${activeScenario}/rounds/${round}/actions/${myCharacter}`).set({ text, submitted: true, submittedAt: Date.now() });
 
   // Check if all 4 submitted
   const updatedActions = { ...(gameState.rounds?.[round]?.actions || {}), [myCharacter]: { submitted: true } };
   if (CHAR_IDS.every(id => updatedActions[id]?.submitted)) {
-    await db.ref(`${ROOT}/phase`).set('waiting_round');
+    await db.ref(`${DB_ROOT}/${activeScenario}/phase`).set('waiting_round');
   }
 }
 
@@ -948,9 +1189,9 @@ function startTypewriter(text, startedAt) {
 async function advanceFromNarration() {
   const phase = gameState.phase;
   if (phase === 'opening') {
-    await db.ref(ROOT).update({ phase:'round_input', currentRound:1 });
+    await db.ref(`${DB_ROOT}/${activeScenario}`).update({ phase:'round_input', currentRound:1 });
   } else if (phase === 'narrating') {
-    await db.ref(ROOT).update({ phase:'round_input' });
+    await db.ref(`${DB_ROOT}/${activeScenario}`).update({ phase:'round_input' });
   }
 }
 
@@ -1035,7 +1276,7 @@ async function gmFireOpening() {
   try {
     const narration = await callClaudeOpening(apiKey);
     const now = Date.now();
-    await db.ref(ROOT).update({ openingNarration: narration, openingNarratedAt: now, phase: 'opening' });
+    await db.ref(`${DB_ROOT}/${activeScenario}`).update({ openingNarration: narration, openingNarratedAt: now, phase: 'opening' });
     btn.textContent = 'Fire Opening';
   } catch(e) {
     alert('Claude error: ' + e.message);
@@ -1057,7 +1298,7 @@ async function gmNarrate() {
     const now = Date.now();
 
     if (isLast) {
-      await db.ref(ROOT).update({
+      await db.ref(`${DB_ROOT}/${activeScenario}`).update({
         [`rounds/${round}/narration`]:  narration,
         [`rounds/${round}/narratedAt`]: now,
         resolution: narration,
@@ -1065,7 +1306,7 @@ async function gmNarrate() {
         phase: 'resolution'
       });
     } else {
-      await db.ref(ROOT).update({
+      await db.ref(`${DB_ROOT}/${activeScenario}`).update({
         [`rounds/${round}/narration`]:  narration,
         [`rounds/${round}/narratedAt`]: now,
         phase:        'narrating',
@@ -1082,13 +1323,14 @@ async function gmNarrate() {
 
 async function gmReset() {
   if (!confirm('Reset the entire game? All progress will be lost.')) return;
-  await db.ref(ROOT).set({ phase: 'character_select', resetToken: Date.now().toString(36) });
+  await db.ref(DB_ROOT).set({ resetToken: Date.now().toString(36) });
+  activeScenario = null;
 }
 
 // ═══════════════════════════════════════════════════
 // CLAUDE API
 // ═══════════════════════════════════════════════════
-async function callClaude(apiKey, messages) {
+async function callClaude(apiKey, messages, systemPrompt) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -1100,7 +1342,7 @@ async function callClaude(apiKey, messages) {
     body: JSON.stringify({
       model:      'claude-sonnet-4-6',
       max_tokens: 1000,
-      system:     SYSTEM_PROMPT,
+      system:     systemPrompt || SYSTEM_PROMPT,
       messages
     })
   });
@@ -1116,7 +1358,7 @@ function surveyText() {
   return CHAR_IDS.map(id => {
     const s = gameState.surveys?.[id];
     if (!s) return null;
-    const loc = CHARACTERS[id].locKey === 'inside' ? 'inside the bank' : 'in the car outside';
+    const loc = charLoc(id);
     return `${CHARACTERS[id].name} (${loc}):\n` +
       `  Emotional state: ${s.q1}\n` +
       `  Instinct:        ${s.q2}\n` +
@@ -1128,21 +1370,28 @@ function surveyText() {
 }
 
 async function callClaudeOpening(apiKey) {
-  const messages = [{
-    role: 'user',
-    content: `The four players have completed their pre-story survey. Here are their answers:\n\n${surveyText()}\n\nPlease narrate the opening scene. Establish the bank on a quiet Tuesday morning. Bring in the family's arrival, and build to the moment the robbers burst through the doors — the gunshot, the shouting, everyone hitting the floor. End just as the chaos begins, leaving the players at the edge of their first decision.`
-  }];
-  return callClaude(apiKey, messages);
+  const scenario = SCENARIOS[activeScenario] || SCENARIOS.scenario1;
+  const openingPrompt = activeScenario === 'scenario2'
+    ? `The four players have completed their pre-story survey. Here are their answers:\n\n${surveyText()}\n\nPlease narrate the opening scene. Establish the family in good spirits heading to an escape room on an early Saturday morning. Build to the moment they round the bend and their headlights reveal the two wrecked cars. End just as they pull over and the doors open, leaving the players at the edge of their first decision.`
+    : activeScenario === 'scenario3'
+    ? `The four players have completed their pre-story survey. Here are their answers:\n\n${surveyText()}\n\nPlease narrate the opening scene. Establish the family on a peaceful late-afternoon hike, dense trail, fading light, no one else around. Build to the moment they all stop — because something massive is moving through the brush just off the trail. End the moment the beast becomes partially visible through the trees, leaving the players frozen at the edge of their first decision.`
+    : `The four players have completed their pre-story survey. Here are their answers:\n\n${surveyText()}\n\nPlease narrate the opening scene. Establish the bank on a quiet Tuesday morning. Bring in the family's arrival, and build to the moment the robbers burst through the doors — the gunshot, the shouting, everyone hitting the floor. End just as the chaos begins, leaving the players at the edge of their first decision.`;
+  const messages = [{ role: 'user', content: openingPrompt }];
+  return callClaude(apiKey, messages, scenario.prompt);
 }
 
 async function callClaudeRound(apiKey, round, isLast) {
   const messages = [];
 
+  const scenario = SCENARIOS[activeScenario] || SCENARIOS.scenario1;
+  const openingPrompt = activeScenario === 'scenario2'
+    ? `The four players have completed their pre-story survey.\n\n${surveyText()}\n\nPlease narrate the opening scene. Establish the family in good spirits heading to an escape room on an early Saturday morning.`
+    : activeScenario === 'scenario3'
+    ? `The four players have completed their pre-story survey.\n\n${surveyText()}\n\nPlease narrate the opening scene. Establish the family on a peaceful late-afternoon hike.`
+    : `The four players have completed their pre-story survey.\n\n${surveyText()}\n\nPlease narrate the opening scene.`;
+
   // Opening exchange
-  messages.push({
-    role: 'user',
-    content: `The four players have completed their pre-story survey.\n\n${surveyText()}\n\nPlease narrate the opening scene.`
-  });
+  messages.push({ role: 'user', content: openingPrompt });
   messages.push({ role: 'assistant', content: gameState.openingNarration || '' });
 
   // All previous rounds
@@ -1152,8 +1401,7 @@ async function callClaudeRound(apiKey, round, isLast) {
     const actText = CHAR_IDS.map(id => {
       const a = rData.actions?.[id];
       if (!a) return null;
-      const loc = CHARACTERS[id].locKey === 'inside' ? 'inside the bank' : 'in the car outside';
-      return `${CHARACTERS[id].name} (${loc}): ${a.text}`;
+      return `${CHARACTERS[id].name} (${charLoc(id)}): ${a.text}`;
     }).filter(Boolean).join('\n');
     messages.push({ role: 'user',      content: `Round ${r} actions:\n${actText}` });
     messages.push({ role: 'assistant', content: rData.narration || '' });
@@ -1164,8 +1412,7 @@ async function callClaudeRound(apiKey, round, isLast) {
   const actText = CHAR_IDS.map(id => {
     const a = curActs[id];
     if (!a) return null;
-    const loc = CHARACTERS[id].locKey === 'inside' ? 'inside the bank' : 'in the car outside';
-    return `${CHARACTERS[id].name} (${loc}): ${a.text}`;
+    return `${CHARACTERS[id].name} (${charLoc(id)}): ${a.text}`;
   }).filter(Boolean).join('\n');
 
   const finalNote = isLast
@@ -1174,7 +1421,7 @@ async function callClaudeRound(apiKey, round, isLast) {
 
   messages.push({ role: 'user', content: `Round ${round} actions:\n${actText}${finalNote}` });
 
-  return callClaude(apiKey, messages);
+  return callClaude(apiKey, messages, scenario.prompt);
 }
 </script>
 </body>
