@@ -438,10 +438,48 @@
     @media (max-width: 700px) { .scenario-grid { grid-template-columns: 1fr; } }
 
     @media (max-width: 520px) {
+      /* Layout */
+      #app { padding: 20px 14px 120px; }
       .char-grid    { grid-template-columns: 1fr; }
       .waiting-grid { grid-template-columns: 1fr; }
+
+      /* Prevent iOS zoom on input focus — must be 16px+ */
+      .action-input { font-size: 16px; min-height: 140px; }
+
+      /* Larger tap targets */
+      .btn  { padding: 14px 24px; font-size: 0.95rem; }
+      .opt-btn { padding: 14px 16px; font-size: 0.92rem; }
+      .btn-opt { padding: 14px 10px; }
+      .emotion-chip { padding: 10px 16px; font-size: 0.88rem; }
+
+      /* Narration — more readable on small screen */
+      .narration-text { font-size: 1.05rem; line-height: 1.9; }
+
+      /* Survey — shorter history, more breathing room */
+      .card { padding: 18px 16px; }
+      .narration-history { max-height: 120px; }
+
+      /* Survey button grids — go single column on phone */
+      .btn-group.cols-3 { grid-template-columns: 1fr; }
       .btn-group.cols-4 { grid-template-columns: 1fr 1fr; }
-      #app { padding: 20px 14px 120px; }
+
+      /* Remove hover styles (they stick on touch) */
+      .char-card:not(.claimed):not(.taken):hover { border-color: var(--border); background: var(--surface); }
+      .scenario-card:hover { border-color: var(--border); background: var(--surface); }
+      .scenario-card:hover .scenario-icon { color: var(--muted); }
+      .opt-btn:hover { border-color: var(--border); }
+      .btn-opt:hover { border-color: var(--border); }
+      .emotion-chip:hover { border-color: var(--border); }
+
+      /* Touch active states — instant feedback on tap */
+      * { -webkit-tap-highlight-color: transparent; }
+      .btn:active { opacity: 0.75; }
+      .opt-btn:active,
+      .btn-opt:active,
+      .emotion-chip:active { background: var(--accent-dim); border-color: var(--accent); }
+      .char-card:not(.claimed):not(.taken):active { border-color: var(--accent); background: var(--accent-dim); }
+      .scenario-card:active { border-color: var(--accent); background: var(--accent-dim); }
+      .scenario-card:active .scenario-icon { color: var(--accent); }
     }
   </style>
 </head>
